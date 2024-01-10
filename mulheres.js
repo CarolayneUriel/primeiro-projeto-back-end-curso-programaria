@@ -1,35 +1,97 @@
-const express = require("express");
-const router = express.Router()
+const express = require("express"); // aqui iniciou o express
+const router = express.Router(); //aqui configurando a primeira parte da rota
+const cors = require('cors'); // trazendo o pacote cors, que permite o connsumo da API no front end
 
-const app = express();
-const porta = 3333;
+const conectaBancoDeDados = require("./bancoDeDados"); //ligando com o arquivo bancoDeDados
+conectaBancoDeDados() //chamando a função que conecta o bando de dados
 
-const mulheres = [
-    {
-        nome: "Simara Conceição",
-        imagem:"https://media.licdn.com/dms/image/C4E03AQFAcqqo2WX_8A/profile-displayphoto-shrink_200_200/0/1563116727332?e=1707955200&v=beta&t=AI4B4iBICt6IcOHStdjeP5Z2Fw2_uw7k_2p-Y378pIw",
-        minibio: "Desenvolvedora e instrutora"
-    },
+const Mulher = require('./mulherModel'); // abstração que diz a regra da criação e da conexão com o banco de dados em relação ao objeto mulher
 
-    {
-        nome: "Iana Chan",
-        imagem: "https://media.licdn.com/dms/image/D4D03AQH94QQ7TrKasQ/profile-displayphoto-shrink_200_200/0/1686007268307?e=1709164800&v=beta&t=Y-nUTIW3MdcmMhs8Clv5FfKj_HLdx6xldT9jS-4N5EQ",
-        minibio: "Fundadora da programaria"
-    },
 
-    {
-        nome: "Nina da Hora",
-        imagem: "https://media.licdn.com/dms/image/D4D22AQE5lt-6AwvU9A/feedshare-shrink_1280/0/1680359777519?e=1706140800&v=beta&t=12InAzU4YlE9bt0O-S7fIKpPYnSnph4tMrUi4FFbWE0",
-        minibio: "Hacker antiracismo"
+const app = express(); // inicioando o app
+app.use(express.json()); // para fazer funcionar o response, fez o body da request ser do tipo json
+app.use(cors())
+const porta = 3333; // criou a porta
+
+
+//GET
+async function mostraMulheres(request, response){
+    try{
+        const mulheresBancoDados = await Mulher.find()
+        response.json(mulheresBancoDados)
+
+    }catch (erro) {
+        console.log(erro)
     }
-]
 
-function mostraMulheres(request, response){
-    response.json(mulheres)
 }
+
+//POST
+async function criarMulher(request, response){
+    const novaMulher = new Mulher({
+        nome: request.body.nome,
+        imagem: request.body.imagem,
+        minibio: request.body.minibio,
+        citacao: request.body.citacao
+    })
+
+    try{
+        const mulherCriada = await novaMulher.save()
+        response.status(201).json(mulherCriada)
+
+    }catch (erro){
+        console.log(erro)
+    }
+}
+
+//PATCH
+async function corrigeMulher(request, response){
+    try{
+       const mulherEncontrada = await Mulher.findById(reuqest.params.id) 
+
+       if (request.body.nome){
+            mulherEncontrada.nome = request.body.nome
+        }
+
+        if (request.body.imagem){
+            mulherEncontrada.imagem = request.body.imagem
+        }
+
+        if (request.body.minibio){
+            mulherEncontrada.minibio = request.body.minibio
+        }
+
+        if (request.body.citacao){
+            mulherEncontrada = request.body.citacao
+        }
+
+        const mulherAtualizadaBancoDeDados = await mulherEncontrada.save()
+        response.json(mulherAtualizadaBancoDeDados)
+
+    }catch(erro) {
+        console.log(erro)
+    }
+}
+
+//DELETE
+async function deletaMulher(request, response){
+   try{
+        await Mulher.findByIdAndDelete(request.params.id)
+        response.json({mensagem: "Mulher deletada com sucesso!"})
+   }catch(erro) {
+        console.log(erro)
+   }
+   
+}
+
+app.use(router.get('/mulheres', mostraMulheres)) // configurei rota GET /mulheres
+app.use(router.post('/mulheres', criarMulher)) // configurei rota POST /mulheres
+app.use(router.patch('/mulheres/:id', corrigeMulher)) // configurei a rota PATCH /mulheres/:id 
+app.use(router.delete('/mulheres/:id', deletaMulher)) // configurei a rota DELETE /mulheres/:id
+
+//Porta
 function mostraPorta(){
-    console.log("Servidos criado e rodando na porta", porta);
+    console.log("Servidor criado e rodando na porta", porta);
 };
 
-app.use(router.get('/mulheres', mostraMulheres))
-app.listen(porta, mostraPorta);
+app.listen(porta, mostraPorta); // servidor ouvindo a porta
